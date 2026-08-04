@@ -4,8 +4,8 @@ window.SITE_CONFIG = {
   // Repos shown in the sidebar, top to bottom. One card each.
   repos: [
     { owner: "rvzm", repo: "zboe2", label: "zboe2" },
-    { owner: "rvzm",    repo: "rvzm.me"                  },
-    { owner: "torvalds", repo: "linux"                     }
+    { owner: "rvzm",    repo: "rvzm.me" },
+    { owner: "twbs", repo: "bootstrap" }
   ],
 
   // Navbar structure. Plain items are { page, src }; a dropdown is
