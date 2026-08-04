@@ -109,6 +109,24 @@ a:hover { text-decoration: underline; }
 .branch-chip.is-default { border-color: var(--accent); color: var(--accent); }
 .branch-chip.muted { opacity: .6; }
 
+.repo-toggle {
+  display: flex; align-items: center; gap: .3rem;
+  width: 100%; margin-top: .6rem; padding: .35rem 0 0;
+  background: none; border: 0; border-top: 1px solid var(--rule);
+  color: var(--bs-secondary-color); font-size: .72rem; text-align: left;
+}
+.repo-toggle i { margin-left: auto; transition: transform .2s ease; }
+.repo-toggle[aria-expanded="true"] i { transform: rotate(180deg); }
+.repo-toggle:hover { color: var(--accent); }
+.repo-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.repo-collapse .repo-section:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+
+/* ------------------------------------------------------------- contact page */
+.repo-label i { color: var(--accent); margin-right: .3rem; }
+.embed-wrap { border-radius: .5rem; overflow: hidden; margin-top: .5rem; }
+.embed-wrap iframe { display: block; }
+
 /* ----------------------------------------------------------------- footer */
 .site-footer { font-family: var(--font-mono); font-size: .72rem; color: var(--bs-secondary-color); }
 

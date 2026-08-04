@@ -43,6 +43,15 @@
     return hash || CFG.defaultRoute;
   }
 
+  function runInlineScripts(root) {
+    $$("script", root).forEach((old) => {
+      const fresh = document.createElement("script");
+      for (const { name, value } of old.attributes) fresh.setAttribute(name, value);
+      fresh.textContent = old.textContent;
+      old.replaceWith(fresh);
+    });
+  }
+
   function navLinkHTML(item, linkClass) {
     const route = item.src.replace(/\.html$/, "");
     return `<a class="${linkClass}" href="#/${esc(route)}">${esc(item.page)}</a>`;
@@ -98,6 +107,7 @@
         pageCache.set(path, await res.text());
       }
       content.innerHTML = pageCache.get(path);
+      runInlineScripts(content);
       document.title = ($("h1", content)?.textContent.trim() || CFG.siteName) + " · " + CFG.siteName;
     } catch (err) {
       content.innerHTML = `
@@ -107,10 +117,12 @@
       document.title = "Not found · " + CFG.siteName;
     } finally {
       content.classList.remove("is-swapping");
-      content.scrollIntoView({ block: "start", behavior: "smooth" });
-      // Close the mobile menu after a jump.
+      // Close the mobile menu before scrolling — scrollIntoView(#content) would
+      // otherwise measure #content's position while the menu is still open and
+      // land short once the menu's collapse shifts everything up afterward.
       const nav = $("#mainNav");
       if (nav?.classList.contains("show")) bootstrap.Collapse.getOrCreateInstance(nav).hide();
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }
 
@@ -258,10 +270,15 @@
               <span><i class="bi bi-diagram-2"></i>${meta?.forks_count ?? 0}</span>
               <span title="Last push"><i class="bi bi-clock-history"></i>${timeAgo(meta?.pushed_at)}</span>
             </div>
+            <button type="button" class="repo-toggle" aria-expanded="false">
+              Details <i class="bi bi-chevron-down"></i>
+            </button>
           </header>
-          ${commitList(state.commits, meta?.html_url)}
-          ${sparkline(state.weeks)}
-          ${branchList(state.branches, meta)}
+          <div class="repo-collapse collapse">
+            ${commitList(state.commits, meta?.html_url)}
+            ${sparkline(state.weeks)}
+            ${branchList(state.branches, meta)}
+          </div>
         </div>
       </article>`;
   }
@@ -336,6 +353,27 @@
   window.addEventListener("hashchange", loadRoute);
   document.addEventListener("click", (e) => {
     if (e.target.closest(".refresh-repos")) loadSidebar(true);
+
+    // Manual toggle wiring (not data-bs-toggle/data-bs-target): #repoCards and
+    // #repoCardsMobile are painted with identical HTML, so any ID baked into
+    // cardHTML() would collide across the two mounts.
+    const toggle = e.target.closest(".repo-toggle");
+    if (!toggle) return;
+    const panel = toggle.closest(".repo-card")?.querySelector(".repo-collapse");
+    if (!panel) return;
+
+    const mount = toggle.closest("#repoCards, #repoCardsMobile");
+    const wasOpen = panel.classList.contains("show");
+
+    // Single-open accordion, scoped to this mount only.
+    mount?.querySelectorAll(".repo-collapse.show").forEach((other) => {
+      if (other === panel) return;
+      bootstrap.Collapse.getOrCreateInstance(other).hide();
+      other.closest(".repo-card")?.querySelector(".repo-toggle")?.setAttribute("aria-expanded", "false");
+    });
+
+    bootstrap.Collapse.getOrCreateInstance(panel).toggle();
+    toggle.setAttribute("aria-expanded", String(!wasOpen));
   });
 
   initTheme();
