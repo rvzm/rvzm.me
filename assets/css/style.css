@@ -1,0 +1,118 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap");
+
+/* ---------------------------------------------------------------- tokens */
+:root {
+  --font-display: "Space Grotesk", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --accent: #4f9dff;
+  --accent-soft: rgba(79, 157, 255, .14);
+  --rule: rgba(128, 140, 160, .22);
+}
+[data-bs-theme="dark"] {
+  --bs-body-bg: #0f1218;
+  --bs-body-color: #d7dce5;
+  --bs-emphasis-color: #f2f5fa;
+  --bs-border-color: rgba(140, 155, 175, .18);
+  --accent: #6fb2ff;
+}
+[data-bs-theme="light"] { --accent: #1f6feb; --accent-soft: rgba(31, 111, 235, .1); }
+
+body { font-family: var(--font-body); }
+h1, h2, h3, .navbar-brand { font-family: var(--font-display); letter-spacing: -.015em; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ----------------------------------------------------------------- navbar */
+.site-nav {
+  background: color-mix(in srgb, var(--bs-body-bg) 88%, transparent);
+  backdrop-filter: blur(10px);
+}
+.navbar-brand { font-weight: 700; }
+.brand-mark { color: var(--accent); font-family: var(--font-mono); }
+.navbar .nav-link { font-weight: 500; padding-inline: .85rem; }
+.navbar .nav-link.active,
+.navbar .dropdown-item.active {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: .375rem;
+}
+.dropdown-menu { --bs-dropdown-link-active-bg: var(--accent-soft); }
+
+/* ---------------------------------------------------------------- content */
+#content { min-height: 60vh; transition: opacity .15s ease; }
+#content.is-swapping { opacity: .35; }
+.page-title { font-size: clamp(2rem, 4vw, 2.85rem); font-weight: 700; margin-bottom: .35rem; }
+.page-eyebrow {
+  font-family: var(--font-mono); font-size: .78rem; text-transform: uppercase;
+  letter-spacing: .12em; color: var(--accent); margin-bottom: .5rem;
+}
+.page-lead { font-size: 1.1rem; max-width: 62ch; color: var(--bs-secondary-color); }
+#content h2 { font-size: 1.35rem; margin-top: 2.25rem; margin-bottom: .75rem; }
+#content p { max-width: 68ch; }
+
+/* ---------------------------------------------------------------- sidebar */
+.sidebar-sticky { position: sticky; top: 5.25rem; max-height: calc(100vh - 6.5rem); overflow-y: auto; padding-right: .25rem; }
+.sidebar-heading {
+  font-family: var(--font-mono); font-size: .78rem; text-transform: uppercase;
+  letter-spacing: .14em; color: var(--bs-secondary-color);
+}
+.sidebar-note { font-size: .72rem; color: var(--bs-secondary-color); font-family: var(--font-mono); }
+.refresh-repos { font-size: .78rem; }
+
+.repo-card { border-color: var(--bs-border-color); border-radius: .65rem; }
+.repo-card .card-body { padding: 1rem 1.05rem; }
+.repo-card.is-error { border-style: dashed; }
+.repo-head { padding-bottom: .35rem; }
+.repo-name { font-size: 1.02rem; font-weight: 700; margin: 0; }
+.repo-name a { color: var(--bs-emphasis-color); }
+.repo-head-top { display: flex; align-items: flex-start; justify-content: space-between; gap: .5rem; }
+.repo-actions { display: flex; gap: .35rem; flex-shrink: 0; }
+.repo-action {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.6rem; height: 1.6rem; border-radius: .3rem;
+  border: 1px solid var(--rule); color: var(--bs-secondary-color); font-size: .78rem;
+}
+.repo-action:hover { color: var(--accent); border-color: var(--accent); text-decoration: none; }
+.repo-owner { font-family: var(--font-mono); font-size: .72rem; color: var(--bs-secondary-color); }
+.repo-desc { font-size: .82rem; margin: .5rem 0 0; color: var(--bs-secondary-color); }
+.repo-stats {
+  display: flex; flex-wrap: wrap; gap: .75rem; margin-top: .6rem;
+  font-family: var(--font-mono); font-size: .72rem; color: var(--bs-secondary-color);
+}
+.repo-stats i { margin-right: .25rem; font-size: .68rem; color: var(--accent); }
+
+.repo-section { margin-top: .85rem; padding-top: .75rem; border-top: 1px solid var(--rule); }
+.repo-label {
+  font-family: var(--font-mono); font-size: .66rem; text-transform: uppercase;
+  letter-spacing: .1em; color: var(--bs-secondary-color); margin-bottom: .4rem;
+}
+.repo-label .count { color: var(--accent); }
+.repo-empty { font-size: .8rem; color: var(--bs-secondary-color); margin: 0; }
+
+.commit-list { list-style: none; margin: 0; padding: 0; }
+.commit-list li + li { margin-top: .55rem; }
+.commit-msg { display: block; font-size: .83rem; line-height: 1.35; color: var(--bs-body-color); }
+.commit-list.head .commit-msg { font-weight: 600; }
+.commit-meta { font-family: var(--font-mono); font-size: .68rem; color: var(--bs-secondary-color); }
+
+.spark { width: 100%; height: 34px; }
+.spark-bar { fill: var(--accent); opacity: .75; }
+.spark-bar:last-child { opacity: 1; }
+
+.branch-wrap { display: flex; flex-wrap: wrap; gap: .35rem; }
+.branch-chip {
+  font-family: var(--font-mono); font-size: .68rem; padding: .18rem .45rem;
+  border: 1px solid var(--rule); border-radius: .3rem; color: var(--bs-secondary-color);
+}
+.branch-chip i { margin-right: .25rem; }
+.branch-chip.is-default { border-color: var(--accent); color: var(--accent); }
+.branch-chip.muted { opacity: .6; }
+
+/* ----------------------------------------------------------------- footer */
+.site-footer { font-family: var(--font-mono); font-size: .72rem; color: var(--bs-secondary-color); }
+
+@media (prefers-reduced-motion: reduce) {
+  #content, .repo-card { transition: none; }
+  * { scroll-behavior: auto !important; }
+}
