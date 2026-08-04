@@ -4,7 +4,7 @@ window.SITE_CONFIG = {
   // Repos shown in the sidebar, top to bottom. One card each.
   repos: [
     { owner: "rvzm", repo: "zboe2", label: "zboe2" },
-    { owner: "twbs",    repo: "bootstrap"                  },
+    { owner: "rvzm",    repo: "rvzm.me"                  },
     { owner: "torvalds", repo: "linux"                     }
   ],
 
