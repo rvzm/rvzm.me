@@ -1,13 +1,33 @@
 <p class="page-eyebrow">Projects / web</p>
-<h1 class="page-title">rvzm.me</h1>
-<p class="page-lead">This site. A single HTML shell, a hash router, and no build step — the simplest
+<h1 class="page-title">This Site</h1>
+<p class="page-lead">A single HTML shell, a hash router, and no build step — the simplest
 thing that could plausibly need a router.</p>
+<hr>
 
 <h2>Where it stands</h2>
 <p>Live and actively worked on. Pages are plain HTML fragments swapped in by the router, config
-lives in one file, and the sidebar pulls live commit/branch activity straight from the GitHub API.
-See the <a href="#/about">about page</a> for how it's built.</p>
+lives in one file, and the sidebar pulls live commit/branch activity straight from the GitHub API.</p>
+
+<h2>How this site is built</h2>
+<p>Bootstrap 5 for layout, one shell page, and a hash router that swaps in page fragments. No build
+step and no framework.</p>
+<p>Some bits are imported, such as:
+    <ul>
+        <li><a href="https://getbootstrap.com/" target="_blank" rel="noopener">Bootstrap</a></li>
+        <li><a href="https://github.com/Rapsssito/github-profile-badge">Rapsssito/github-profile-badge</a></li>
+        <li><a href="https://discord.com/blog/add-the-discord-widget-to-your-site" target="_blank" rel="noopener">Discord widget</a></li>
+        <li><a href="https://github.com/public-apis/public-apis" target="_blank" rel="noopener">GitHub/public-apis</a></li>
+    </ul>
+</p>
+
+<h2>The Idea</h2>
+<p>Keep it simple. No framework, no build step, no server-side code. Just a single HTML shell
+that swaps in page fragments and a sidebar that talks to the GitHub API directly from the browser. The sidebar is a live read of 
+what I pushed most recently, and the pages are just static HTML fragments.</p>
+<p>I've made it so pages are loaded dynamically via the hash router, ensuring that only the necessary content is fetched and displayed, while also
+   making adding content easy without needing to touch the main shell. The sidebar is a live read of what I pushed most recently, and the pages
+   are just static HTML fragments.</p>
 
 <h2>Notes</h2>
 <p>Source is at <a href="https://github.com/rvzm/rvzm.me" target="_blank" rel="noopener">rvzm/rvzm.me</a>
-— also tracked in the sidebar. Runs on kelvin, same as <a href="#/projects/homelab">homelab</a>.</p>
+— also tracked in the sidebar. Runs on kelvin from the <a href="#/projects/homelab">homelab</a> cluster.</p>
