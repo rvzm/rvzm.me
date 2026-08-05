@@ -39,6 +39,13 @@ a:hover { text-decoration: underline; }
 }
 .dropdown-menu { --bs-dropdown-link-active-bg: var(--accent-soft); }
 
+/* ------------------------------------------------------------- page frame */
+.page-frame {
+  max-width: 100rem;
+  border: 1px solid var(--rule);
+  border-radius: 1rem;
+}
+
 /* ---------------------------------------------------------------- content */
 #content { min-height: 60vh; transition: opacity .15s ease; }
 #content.is-swapping { opacity: .35; }
