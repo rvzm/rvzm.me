@@ -314,27 +314,41 @@
 
   const mounts = () => [$("#repoCards"), $("#repoCardsMobile")].filter(Boolean);
 
-  function paint(index, html) {
-    mounts().forEach((m) => { if (m.children[index]) m.children[index].outerHTML = html; });
+  // Skeleton -> fetch -> paint for one repo list into one or more containers
+  // that must render it in lockstep (desktop/mobile sidebar mirror each
+  // other; a page-embedded box has just one target). Shared by loadSidebar()
+  // and the public RepoActivity.mount() used by page fragments.
+  async function renderRepoList(targets, entries, force = false) {
+    targets.forEach((m) => { m.innerHTML = entries.map(skeletonHTML).join(""); });
+    await Promise.all(entries.map(async (entry, i) => {
+      let html;
+      try {
+        html = cardHTML(await fetchRepo(entry, force));
+      } catch (err) {
+        html = errorHTML(entry, err);
+      }
+      targets.forEach((m) => { if (m.children[i]) m.children[i].outerHTML = html; });
+    }));
   }
 
   async function loadSidebar(force = false) {
-    const repos = CFG.repos || [];
-    mounts().forEach((m) => { m.innerHTML = repos.map(skeletonHTML).join(""); });
-
-    await Promise.all(repos.map(async (entry, i) => {
-      try {
-        paint(i, cardHTML(await fetchRepo(entry, force)));
-      } catch (err) {
-        paint(i, errorHTML(entry, err));
-      }
-    }));
+    await renderRepoList(mounts(), CFG.repos || [], force);
 
     const note = $("#rateNote");
     if (note && rateRemaining !== null) {
       note.textContent = `${rateRemaining} GitHub requests left this hour${CFG.token ? "" : " (unauthenticated)"}.`;
     }
   }
+
+  // Minimal public surface so page fragments (loaded into #content by the
+  // router) can render repo-activity cards without duplicating the
+  // fetch/render pipeline above.
+  window.RepoActivity = {
+    mount(container, entries, force = false) {
+      if (!container || !entries?.length) return Promise.resolve();
+      return renderRepoList([container], entries, force);
+    }
+  };
 
   /* ------------------------------------------------------------------- theme */
 
@@ -354,15 +368,18 @@
   document.addEventListener("click", (e) => {
     if (e.target.closest(".refresh-repos")) loadSidebar(true);
 
-    // Manual toggle wiring (not data-bs-toggle/data-bs-target): #repoCards and
-    // #repoCardsMobile are painted with identical HTML, so any ID baked into
-    // cardHTML() would collide across the two mounts.
+    // Manual toggle wiring (not data-bs-toggle/data-bs-target): a mount can be
+    // painted with several repo-cards that share no unique IDs, and the same
+    // list can be mirrored across mounts (desktop/mobile sidebar), so any ID
+    // baked into cardHTML() would collide. Every mount (sidebar + page-embedded
+    // repo-activity boxes) carries .repo-activity-mount so this scopes to all
+    // of them uniformly.
     const toggle = e.target.closest(".repo-toggle");
     if (!toggle) return;
     const panel = toggle.closest(".repo-card")?.querySelector(".repo-collapse");
     if (!panel) return;
 
-    const mount = toggle.closest("#repoCards, #repoCardsMobile");
+    const mount = toggle.closest(".repo-activity-mount");
     const wasOpen = panel.classList.contains("show");
 
     // Single-open accordion, scoped to this mount only.

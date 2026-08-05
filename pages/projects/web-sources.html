@@ -1,0 +1,88 @@
+<p class="page-eyebrow">Projects / web / sources</p>
+<h1 class="page-title">Repo Activity</h1>
+<p class="page-lead">Repo Activity tracking for repo's used in this site.</p>
+<hr>
+
+<h1>The List</h1>
+<p>Here we'll list the repos we're using, authoring, or that we've forked.</p>
+
+<p>
+First, Authored repos
+    <ul>
+        <li><a href="https://github.com/rvzm/zboe2" target="_blank" rel="noopener" data-tag="authored">zboe2</a></li>
+        <li><a href="https://github.com/rvzm/rvzm.me" target="_blank" rel="noopener" data-tag="authored">rvzm.me web</a></li>
+    </ul>
+</p>
+<p>
+Now repo's we're utilizing
+    <ul>
+        <li><a href="https://github.com/twbs/bootstrap" target="_blank" rel="noopener" data-tag="utilized">twbs/bootstrap</a></li>
+        <li><a href="https://github.com/Rapsssito/github-profile-badge" target="_blank" rel="noopener" data-tag="utilized">Rapsssito/github-profile-badge</a></li>
+        <li><a href="https://github.com/gamer2810/steam-miniprofile" target="_blank" rel="noopener" data-tag="utilized">gamer2810/steam-miniprofile</a></li>
+        <li><a href="https://github.com/public-apis/public-apis" target="_blank" rel="noopener" data-tag="utilized">GitHub/public-apis</a></li>
+    </ul>
+</p>
+<p>
+And finally, repo's we've forked
+    <ul>
+        <li><a href="#/projects/web-sources" target="_blank" rel="noopener" data-tag="forked">none yet</a></li>
+    </ul>
+</p>
+<hr>
+
+<h2>The Activity</h2>
+
+<div class="row g-3 mt-3">
+  <div class="col-12 col-md-4">
+    <div class="card h-100"><div class="card-body">
+      <div class="repo-label"><i class="bi bi-github"></i> Authored</div>
+      <div id="src-repo-author" class="d-grid gap-3 repo-activity-mount"></div>
+    </div></div>
+  </div>
+  <div class="col-12 col-md-4">
+    <div class="card h-100"><div class="card-body">
+      <div class="repo-label"><i class="bi bi-github"></i> Utilized</div>
+      <div id="src-repo-util" class="d-grid gap-3 repo-activity-mount"></div>
+    </div></div>
+  </div>
+  <div class="col-12 col-md-4">
+    <div class="card h-100"><div class="card-body">
+      <div class="repo-label"><i class="bi bi-github"></i> Forked</div>
+      <div id="src-repo-fork" class="d-grid gap-3 repo-activity-mount"></div>
+    </div></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+  const root = document.currentScript.closest("#content") || document;
+
+  function parseCategory(tag) {
+    return [...root.querySelectorAll(`a[data-tag="${tag}"]`)]
+      .map((a) => {
+        const href = a.getAttribute("href") || "";
+        const m = href.match(/^https:\/\/github\.com\/([^/?#]+)\/([^/?#]+)\/?$/);
+        return m ? { owner: m[1], repo: m[2], label: a.textContent.trim() } : null;
+      })
+      .filter(Boolean);
+  }
+
+  const categories = [
+    { tag: "authored", mountId: "src-repo-author", empty: "No authored repos yet." },
+    { tag: "utilized",  mountId: "src-repo-util",  empty: "No utilized repos yet." },
+    { tag: "forked",    mountId: "src-repo-fork",  empty: "No forked repos yet." }
+  ];
+
+  categories.forEach(({ tag, mountId, empty }) => {
+    const mount = root.querySelector("#" + mountId);
+    if (!mount) return;
+    const entries = parseCategory(tag);
+    if (entries.length) {
+      window.RepoActivity.mount(mount, entries);
+    } else {
+      mount.innerHTML = `<p class="repo-empty mb-0">${empty}</p>`;
+    }
+  });
+})();
+</script>
