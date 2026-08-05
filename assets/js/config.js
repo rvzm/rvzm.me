@@ -18,6 +18,7 @@ window.SITE_CONFIG = {
         { page: "zboe2", src: "projects/zboe2.html" },
         { page: "Homelab", src: "projects/homelab.html" },
         { page: "web", src: "projects/web.html" },
+        { page: "web sources", src: "projects/web-sources.html" },
         { divider: true },
         { page: "All projects", src: "projects/index.html" }
     ]},
