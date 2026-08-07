@@ -20,6 +20,8 @@ window.SITE_CONFIG = {
         { page: "web", src: "projects/web.html" },
         { page: "web sources", src: "projects/web-sources.html" },
         { divider: true },
+        { page: "apocylta", src: "projects/apocylta.html" },
+        { divider: true },
         { page: "All projects", src: "projects/index.html" }
     ]},
     { page: "Contact", src: "contact.html" }
