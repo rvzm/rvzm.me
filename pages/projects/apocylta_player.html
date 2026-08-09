@@ -1,0 +1,1068 @@
+<title>apocylta - playercard reader</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  /* shared:style start -------------------------------------------------------
+     Everything down to the matching end marker is carried verbatim by
+     apocylta_player.html, and test/unit/playerPage.test.js asserts the two
+     copies stay identical. Page-local rules go AFTER the end marker. */
+  :root {
+    --bg: #0a0d0a;
+    --panel: #0f140f;
+    --border: #1f3a1f;
+    --green: #39ff14;
+    --green-dim: #1f8f0d;
+    --amber: #ffb000;
+    --text: #c9e8c2;
+    --text-dim: #6f8f68;
+    --danger: #ff4d4d;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    padding: 24px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    /* Without this the lone .card flex item stretches to the full 100vh
+       min-height, painting a viewport-tall panel behind a short tab. The
+       min-height stays so --bg still covers the viewport behind the card. */
+    align-items: flex-start;
+  }
+
+  .card {
+    width: 100%;
+    max-width: 720px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    box-shadow: 0 0 24px rgba(57, 255, 20, 0.08), inset 0 0 40px rgba(57, 255, 20, 0.03);
+    padding: 20px 24px 24px;
+  }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 12px;
+    margin-bottom: 16px;
+  }
+
+  .header h1 {
+    font-size: 1.1rem;
+    margin: 0;
+    color: var(--green);
+    letter-spacing: 0.05em;
+  }
+
+  /* The subtitle soaks up the header's free space, which is what keeps it next
+     to the title and the buttons hard right. It used to be margin-left:auto on
+     .export-btn instead - but that rule matches every button, so a second one
+     claimed half the space and the two sat at opposite ends of the header, and
+     the reader page's Import button (same class, no header) was pushed to the
+     far side of its own row. */
+  .header .sub {
+    color: var(--text-dim);
+    font-size: 0.75rem;
+    margin-left: 8px;
+    margin-right: auto;
+  }
+
+  .header .export-btn + .export-btn {
+    margin-left: 8px;
+  }
+
+  .export-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font: inherit;
+    font-size: 0.75rem;
+    padding: 4px 10px;
+    cursor: pointer;
+  }
+
+  .export-btn:hover {
+    border-color: var(--green-dim);
+    color: var(--green);
+  }
+
+  .export-btn[hidden] {
+    display: none;
+  }
+
+  .name-level {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 4px;
+  }
+
+  .name-level .name {
+    font-size: 1.3rem;
+    color: var(--amber);
+  }
+
+  .name-level .level {
+    color: var(--text-dim);
+  }
+
+  .xp {
+    color: var(--text-dim);
+    font-size: 0.8rem;
+    margin-bottom: 16px;
+  }
+
+  .bars {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .bar-row .label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-bottom: 3px;
+  }
+
+  .bar-track {
+    height: 10px;
+    background: #050705;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .bar-fill {
+    height: 100%;
+    width: 0%;
+    transition: width 0.4s ease;
+  }
+
+  .bar-fill.hp {
+    background: var(--green);
+  }
+
+  .bar-fill.mp {
+    background: #3ea8ff;
+  }
+
+  .bar-fill.skill {
+    background: var(--green-dim);
+  }
+
+  .meta {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px 16px;
+    font-size: 0.8rem;
+    margin-bottom: 18px;
+    color: var(--text-dim);
+  }
+
+  .meta strong {
+    color: var(--text);
+    font-weight: normal;
+  }
+
+  .badge {
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 0.7rem;
+    letter-spacing: 0.03em;
+  }
+
+  .badge.safe {
+    color: var(--green);
+    border: 1px solid var(--green-dim);
+  }
+
+  .badge.danger {
+    color: var(--danger);
+    border: 1px solid var(--danger);
+  }
+
+  .action-line {
+    grid-column: 1 / -1;
+    color: var(--amber);
+  }
+
+  section {
+    margin-bottom: 18px;
+  }
+
+  section h2 {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 4px;
+    margin: 0 0 10px;
+  }
+
+  .skills-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 16px;
+  }
+
+  .skill-row .label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    margin-bottom: 3px;
+  }
+
+  .skill-row .label .name {
+    color: var(--text);
+  }
+
+  .skill-row .label .lvl {
+    color: var(--text-dim);
+  }
+
+  .equip-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 16px;
+    font-size: 0.8rem;
+  }
+
+  .equip-row {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px dotted var(--border);
+    padding-bottom: 3px;
+  }
+
+  .equip-row .slot {
+    color: var(--text-dim);
+  }
+
+  .equip-row .item.empty {
+    color: var(--text-dim);
+    font-style: italic;
+  }
+
+  .inv-list {
+    font-size: 0.78rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .inv-list li {
+    display: flex;
+    justify-content: space-between;
+    padding: 2px 0;
+    border-left: 3px solid var(--rarity, var(--border));
+    padding-left: 6px;
+    margin-bottom: 2px;
+  }
+
+  .inv-list .qty {
+    color: var(--text-dim);
+  }
+
+  footer {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    border-top: 1px solid var(--border);
+    padding-top: 10px;
+  }
+
+  #status.live {
+    color: var(--green);
+  }
+
+  #status.stale {
+    color: var(--danger);
+  }
+
+  .tabs {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+
+  .tab-btn,
+  .subtab-btn {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-dim);
+    font-family: inherit;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 6px 10px 8px;
+    cursor: pointer;
+  }
+
+  .tab-btn:hover,
+  .subtab-btn:hover {
+    color: var(--text);
+  }
+
+  .tab-btn.active,
+  .subtab-btn.active {
+    color: var(--green);
+    border-bottom-color: var(--green);
+  }
+
+  /* Backpack type/subtype bars. Distinct classes from .tab-btn on purpose:
+     showTab() queries .tab-btn document-wide, so reusing that class would make
+     a sub-tab click deactivate every top-level panel. Wraps because a varied
+     inventory can easily exceed the card's 720px in one row. */
+  .subtabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 10px;
+  }
+
+  .subtabs:empty {
+    display: none;
+  }
+
+  .subtabs .subtab-btn {
+    font-size: 0.68rem;
+    padding: 4px 8px 5px;
+  }
+
+  /* The subtype row reads as subordinate to the type row above it. */
+  .subtabs.sub {
+    border-bottom: none;
+    margin: -6px 0 10px 10px;
+  }
+
+  .subtabs.sub .subtab-btn {
+    font-size: 0.64rem;
+    text-transform: none;
+    letter-spacing: 0.02em;
+    padding: 2px 7px 3px;
+  }
+
+  .tab-panel {
+    display: none;
+  }
+
+  .tab-panel.active {
+    display: block;
+  }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 6px;
+    font-size: 0.8rem;
+  }
+
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px dotted var(--border);
+    padding-bottom: 3px;
+  }
+
+  .stat-row .label {
+    color: var(--text-dim);
+  }
+
+  .quest-entry {
+    margin-bottom: 14px;
+  }
+
+  .quest-entry .quest-name {
+    color: var(--amber);
+    font-size: 0.85rem;
+    margin-bottom: 4px;
+  }
+
+  .quest-obj {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    padding-left: 10px;
+  }
+
+  .quest-obj.complete {
+    color: var(--green);
+  }
+
+  .quest-reward {
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    padding-left: 10px;
+    margin-top: 2px;
+  }
+
+  .empty-note {
+    color: var(--text-dim);
+    font-size: 0.8rem;
+    font-style: italic;
+  }
+
+  .ach-entry {
+    border-bottom: 1px dotted var(--border);
+    padding: 6px 0;
+  }
+
+  .ach-entry .ach-name {
+    color: var(--text);
+    font-size: 0.85rem;
+  }
+
+  .ach-entry .ach-desc {
+    color: var(--text-dim);
+    font-size: 0.75rem;
+    margin: 2px 0;
+  }
+
+  .ach-entry .ach-reward {
+    color: var(--text-dim);
+    font-size: 0.72rem;
+  }
+
+  .ach-entry.unlocked .ach-name {
+    color: var(--green);
+  }
+
+  .ach-entry.locked {
+    opacity: 0.72;
+  }
+
+  .ach-req {
+    color: var(--text-dim);
+    font-size: 0.72rem;
+  }
+
+  .ach-req.complete {
+    color: var(--green);
+  }
+  /* shared:style end */
+
+  /* --- reader-only ---------------------------------------------------------
+     Outside the shared region on purpose: the drift test compares only what
+     sits between the markers, so anything this page adds has to live here. */
+  #import-panel[hidden],
+  #pc-body[hidden] {
+    display: none;
+  }
+
+  #import-panel .blurb {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin: 0 0 12px;
+    line-height: 1.5;
+  }
+
+  #import-panel .blurb strong {
+    color: var(--green);
+    font-weight: normal;
+  }
+
+  #import-input {
+    width: 100%;
+    min-height: 220px;
+    resize: vertical;
+    background: #050705;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text);
+    font: inherit;
+    font-size: 0.75rem;
+    padding: 10px;
+    margin-bottom: 12px;
+  }
+
+  #import-input:focus {
+    outline: none;
+    border-color: var(--green-dim);
+  }
+
+  #import-input::placeholder {
+    color: var(--text-dim);
+  }
+
+  .import-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 16px;
+  }
+
+  .file-row {
+    font-size: 0.72rem;
+    color: var(--text-dim);
+  }
+
+  #import-file {
+    font: inherit;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+  }
+
+  .import-error {
+    color: var(--danger);
+    font-size: 0.75rem;
+    margin: 12px 0 0;
+  }
+</style>
+
+<div class="card">
+  <div class="header">
+    <h1>APOCYLTA</h1>
+    <span class="sub">playercard reader</span>
+    <!-- Same trap as the live page's export buttons: NOT class="tab-btn",
+         which showTab() queries document-wide. -->
+    <button id="reset-btn" class="export-btn" hidden>Load another</button>
+  </div>
+
+  <div id="import-panel">
+    <p class="blurb">
+      Paste the JSON a playercard's <strong>[Export JSON]</strong> button saved, then press Import.
+      Nothing is uploaded and nothing is stored - the card is drawn here in your browser, from that
+      text alone.
+    </p>
+    <textarea id="import-input" spellcheck="false" placeholder='{ "name": "Rae", "level": 4, ... }'></textarea>
+    <div class="import-actions">
+      <button id="import-btn" class="export-btn">Import</button>
+      <span class="file-row">
+        or choose a file:
+        <input id="import-file" type="file" accept=".json,application/json" />
+      </span>
+    </div>
+    <p id="import-error" class="import-error" hidden></p>
+  </div>
+
+  <!-- Hidden until an import succeeds: a failed render() leaves this half
+       drawn, and a half-drawn card is worse than the paste box. -->
+  <div id="pc-body" hidden>
+  <!-- shared:card start ------------------------------------------------------
+       Carried verbatim by apocylta_player.html (which wraps it in a hidden
+       #pc-body until something is imported), and pinned identical by
+       test/unit/playerPage.test.js. Each page's own header sits outside it. -->
+  <div class="tabs" id="tabs">
+    <button class="tab-btn active" data-tab="playercard">Playercard</button>
+    <button class="tab-btn" data-tab="toolbelt">Toolbelt</button>
+    <button class="tab-btn" data-tab="backpack">Backpack</button>
+    <button class="tab-btn" data-tab="quests">Quests</button>
+    <button class="tab-btn" data-tab="achievements">Achievements</button>
+  </div>
+
+  <div class="tab-panel active" data-tab="playercard">
+    <div class="name-level">
+      <span class="name" id="name">-</span>
+      <span class="level" id="level">Level -</span>
+    </div>
+    <div class="xp" id="xp">- XP</div>
+
+    <div class="bars">
+      <div class="bar-row">
+        <div class="label"><span>HP</span><span id="hp-text">-/-</span></div>
+        <div class="bar-track"><div class="bar-fill hp" id="hp-fill"></div></div>
+      </div>
+      <div class="bar-row">
+        <div class="label"><span>MP</span><span id="mp-text">-/-</span></div>
+        <div class="bar-track"><div class="bar-fill mp" id="mp-fill"></div></div>
+      </div>
+    </div>
+
+    <div class="meta">
+      <div>Gold: <strong id="gold">-</strong></div>
+      <div>Time: <strong id="clock">-</strong></div>
+      <div>Location: <strong id="location-name">-</strong> <span class="badge" id="location-badge"></span></div>
+      <div id="action-container"></div>
+    </div>
+
+    <section id="combat-section" hidden>
+      <h2>In Combat</h2>
+      <div class="meta">
+        <div><strong id="combat-enemy">-</strong> <span class="badge danger" id="combat-boss" hidden>BOSS</span></div>
+        <div class="bar-track"><div class="bar-fill hp" id="combat-fill"></div></div>
+        <div id="combat-meta"></div>
+      </div>
+      <ul class="inv-list" id="combat-log"></ul>
+    </section>
+
+    <section>
+      <h2>Skills</h2>
+      <div class="skills-grid" id="skills-grid"></div>
+    </section>
+
+    <section id="kills-section" hidden>
+      <h2>Enemies Defeated</h2>
+      <ul class="inv-list" id="kills-list"></ul>
+    </section>
+
+    <section>
+      <h2>Equipment</h2>
+      <div class="equip-grid" id="equip-grid"></div>
+    </section>
+  </div>
+
+  <div class="tab-panel" data-tab="toolbelt">
+    <section>
+      <h2>Toolbelt</h2>
+      <div class="stat-grid" id="toolbelt-grid"></div>
+    </section>
+  </div>
+
+  <div class="tab-panel" data-tab="backpack">
+    <section>
+      <h2>Inventory</h2>
+      <div class="subtabs" id="inv-type-tabs"></div>
+      <div class="subtabs sub" id="inv-subtype-tabs"></div>
+      <ul class="inv-list" id="inv-list"></ul>
+    </section>
+  </div>
+
+  <div class="tab-panel" data-tab="quests">
+    <section>
+      <h2>In Progress</h2>
+      <div id="quests-in-progress"></div>
+    </section>
+    <section>
+      <h2>Completed</h2>
+      <div id="quests-completed"></div>
+    </section>
+  </div>
+
+  <div class="tab-panel" data-tab="achievements">
+    <section>
+      <h2>Achievements</h2>
+      <div id="achievements-list"></div>
+    </section>
+  </div>
+
+  <footer>
+    <span id="status">connecting...</span>
+    <span id="updated"></span>
+  </footer>
+  <!-- shared:card end -->
+  </div>
+</div>
+
+<script>
+  // shared:render start ------------------------------------------------------
+  // Carried verbatim by apocylta_player.html and pinned identical by
+  // test/unit/playerPage.test.js, so nothing in here may assume this page's
+  // poll or its export buttons exist. Each page's bootstrap lives outside it.
+
+  function pct(value, max) {
+    if (!max || max <= 0) return 0;
+    return Math.max(0, Math.min(100, (value / max) * 100));
+  }
+
+  function el(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text != null) node.textContent = text;
+    return node;
+  }
+
+  function showTab(name) {
+    for (const btn of document.querySelectorAll(".tab-btn")) btn.classList.toggle("active", btn.dataset.tab === name);
+    for (const panel of document.querySelectorAll(".tab-panel")) panel.classList.toggle("active", panel.dataset.tab === name);
+  }
+  document.getElementById("tabs").addEventListener("click", (e) => {
+    const btn = e.target.closest(".tab-btn");
+    if (btn) showTab(btn.dataset.tab);
+  });
+
+  function formatXp(xp) {
+    if (xp == null) return "";
+    if (typeof xp === "number") return `${xp}xp`;
+    const parts = [];
+    if (xp.player) parts.push(`${xp.player}xp`);
+    if (xp.skill) for (const [skill, amt] of Object.entries(xp.skill)) parts.push(`${amt} ${skill}xp`);
+    return parts.join(", ");
+  }
+
+  function formatReward(reward) {
+    const parts = [];
+    if (reward.gold) parts.push(`${reward.gold}gp`);
+    const xp = formatXp(reward.xp);
+    if (xp) parts.push(xp);
+    return parts.join(", ") || "none";
+  }
+
+  function renderToolbelt(data) {
+    const tb = data.toolbelt;
+    const rows = [
+      ["Equipped Belt", data.equipment.belt || "none"],
+      ["Equipped Tool", data.equipment.tool || "none"],
+      ["Water Bottle", `${tb.waterBottle}/${tb.waterBottleCap}`],
+      ["Slingshot Ammo", `${tb.slingshotAmmo}/${tb.slingshotAmmoCap}`],
+      ["Equipped Slingshot", data.equipment.slingshot || "none"],
+      ["Quiver", tb.quiverCap === null ? `${tb.quiver}` : `${tb.quiver}/${tb.quiverCap}`],
+      ["Backpack", `${tb.backpackUsed}/${tb.backpackCap}`],
+      ["Potions", `${tb.potionsUsed}/${tb.potionsCap}`],
+    ];
+    const grid = document.getElementById("toolbelt-grid");
+    grid.innerHTML = "";
+    for (const [label, value] of rows) {
+      const row = el("div", "stat-row");
+      row.appendChild(el("span", "label", label));
+      row.appendChild(el("span", "", value));
+      grid.appendChild(row);
+    }
+  }
+
+  function renderQuests(data) {
+    const inProgress = data.quests.filter((q) => q.status === "in_progress");
+    const completed = data.quests.filter((q) => q.status === "completed");
+
+    const inProgressEl = document.getElementById("quests-in-progress");
+    inProgressEl.innerHTML = "";
+    if (!inProgress.length) inProgressEl.appendChild(el("div", "empty-note", "No quests in progress."));
+    for (const q of inProgress) {
+      const entry = el("div", "quest-entry");
+      entry.appendChild(el("div", "quest-name", q.name));
+      for (const obj of q.objectives) {
+        entry.appendChild(
+          el(
+            "div",
+            "quest-obj" + (obj.complete ? " complete" : ""),
+            `${obj.complete ? "[x]" : "[ ]"} ${obj.label} (${obj.current}/${obj.target})`
+          )
+        );
+      }
+      entry.appendChild(el("div", "quest-reward", `Reward: ${formatReward(q.reward)}`));
+      inProgressEl.appendChild(entry);
+    }
+
+    const completedEl = document.getElementById("quests-completed");
+    completedEl.innerHTML = "";
+    if (!completed.length) completedEl.appendChild(el("div", "empty-note", "No completed quests yet."));
+    for (const q of completed) {
+      const entry = el("div", "quest-entry");
+      entry.appendChild(el("div", "quest-name", `${q.name} - claimed ${formatReward(q.reward)}`));
+      completedEl.appendChild(entry);
+    }
+  }
+
+  function renderAchievements(data) {
+    const list = document.getElementById("achievements-list");
+    list.innerHTML = "";
+    // Unlocked first, then locked - mirrors the in-game screen's grouping.
+    const ordered = [...data.achievements].sort((a, b) => Number(b.unlocked) - Number(a.unlocked));
+    for (const a of ordered) {
+      const entry = el("div", `ach-entry ${a.unlocked ? "unlocked" : "locked"}`);
+      entry.appendChild(el("div", "ach-name", `${a.unlocked ? "✓ " : ""}${a.name}`));
+      entry.appendChild(el("div", "ach-desc", a.desc));
+      entry.appendChild(
+        el("div", "ach-reward", `${a.unlocked ? "Claimed" : "Reward"}: ${formatReward(a.reward)}`)
+      );
+      // combatEnd is decided in the instant a fight ends, so it has no
+      // meaningful running progress to show - the description covers it.
+      for (const req of a.requirements ?? []) {
+        if (a.unlocked || req.key === "combatEnd") continue;
+        entry.appendChild(
+          el("div", `ach-req ${req.complete ? "complete" : ""}`, `${req.key}: ${req.current}/${req.target}`)
+        );
+      }
+      list.appendChild(entry);
+    }
+  }
+
+  // --- Backpack type/subtype tabs -----------------------------------------
+  // The live page re-polls every few seconds and re-renders from scratch, so
+  // the selection has to live outside render() or it snaps back each time.
+  let invType = "all";
+  let invSubtype = "all";
+
+  const NO_SUBTYPE = "other"; // items whose catalog entry has no subtype
+  const MIN_TABS = 3; // fewer categories than this isn't worth navigating
+
+  function distinct(values) {
+    return [...new Set(values)].sort();
+  }
+
+  // Rebuilds a bar only when its button set actually changed - otherwise every
+  // poll would drop hover state and churn the DOM on a static page. Returns
+  // the keys it rendered (empty when the bar is hidden).
+  function syncTabBar(container, keys, selected, onPick) {
+    const wanted = keys.length >= MIN_TABS ? ["all", ...keys] : [];
+    if (container.dataset.keys !== wanted.join("|")) {
+      container.dataset.keys = wanted.join("|");
+      container.innerHTML = "";
+      for (const key of wanted) {
+        const btn = el("button", "subtab-btn", key === "all" ? "All" : key.replace(/_/g, " "));
+        btn.dataset.key = key;
+        container.appendChild(btn);
+      }
+      container.onclick = (e) => {
+        const btn = e.target.closest(".subtab-btn");
+        if (btn) onPick(btn.dataset.key);
+      };
+    }
+    for (const btn of container.children) btn.classList.toggle("active", btn.dataset.key === selected);
+    return wanted;
+  }
+
+  function subtypeOf(item) {
+    return item.subtype || NO_SUBTYPE;
+  }
+
+  function renderBackpack(data) {
+    const items = data.inventory ?? [];
+
+    const types = distinct(items.map((i) => i.type));
+    // Self-heal: the selected type can vanish between polls (last one sold, or
+    // the whole backpack lost on death). Falling back beats an empty list that
+    // never recovers.
+    if (invType !== "all" && !types.includes(invType)) invType = "all";
+    const shownTypes = syncTabBar(document.getElementById("inv-type-tabs"), types, invType, (key) => {
+      invType = key;
+      invSubtype = "all";
+      renderBackpack(data);
+    });
+    if (!shownTypes.length) invType = "all";
+
+    const ofType = invType === "all" ? items : items.filter((i) => i.type === invType);
+
+    const subtypes = distinct(ofType.map(subtypeOf));
+    if (invSubtype !== "all" && !subtypes.includes(invSubtype)) invSubtype = "all";
+    const shownSubtypes = syncTabBar(document.getElementById("inv-subtype-tabs"), subtypes, invSubtype, (key) => {
+      invSubtype = key;
+      renderBackpack(data);
+    });
+    if (!shownSubtypes.length) invSubtype = "all";
+
+    const shown = invSubtype === "all" ? ofType : ofType.filter((i) => subtypeOf(i) === invSubtype);
+    renderInventoryList(document.getElementById("inv-list"), shown);
+  }
+
+  function renderInventoryList(container, items) {
+    container.innerHTML = "";
+    if (!items.length) {
+      container.appendChild(el("li", "", "(empty)"));
+      return;
+    }
+    for (const item of items) {
+      const li = el("li");
+      li.style.setProperty("--rarity", item.rarityColor);
+      li.appendChild(el("span", "", item.name));
+      li.appendChild(el("span", "qty", `x${item.qty}`));
+      container.appendChild(li);
+    }
+  }
+
+  // Kept so the export buttons have something to embed - render() otherwise
+  // consumes the payload and drops it.
+  let lastData = null;
+
+  function render(data) {
+    lastData = data;
+    // Looked up rather than assumed: this function is shared with the reader
+    // page, which has neither button, and an unguarded getElementById would
+    // throw there before a single field was drawn.
+    for (const id of ["export-btn", "export-json-btn"]) {
+      const btn = document.getElementById(id);
+      if (btn) btn.hidden = !data.exportEnabled;
+    }
+    document.getElementById("name").textContent = data.name;
+    document.getElementById("level").textContent = `Level ${data.level}`;
+    document.getElementById("xp").textContent = `${data.experience} XP`;
+
+    document.getElementById("hp-text").textContent = `${data.hp}/${data.hpMax}`;
+    document.getElementById("hp-fill").style.width = pct(data.hp, data.hpMax) + "%";
+    document.getElementById("mp-text").textContent = `${data.mp}/${data.mpMax}`;
+    document.getElementById("mp-fill").style.width = pct(data.mp, data.mpMax) + "%";
+
+    document.getElementById("gold").textContent = `${data.gold} gp`;
+    document.getElementById("clock").textContent = data.clock;
+    document.getElementById("location-name").textContent = data.location.name;
+    const badge = document.getElementById("location-badge");
+    badge.textContent = data.location.safe ? "SAFE ZONE" : "DANGER";
+    badge.className = "badge " + (data.location.safe ? "safe" : "danger");
+
+    const actionContainer = document.getElementById("action-container");
+    actionContainer.innerHTML = "";
+    actionContainer.className = "action-line";
+    if (data.currentAction) {
+      const gathered = data.currentAction.gathered.map((g) => `${g.name} x${g.qty}`).join(", ") || "nothing yet";
+      // Attempts land seconds apart (up to 30 on nightmare), so the latest one
+      // and the countdown are what keep this line from looking stuck.
+      const attempt = data.currentAction.lastAttempt ? ` - ${data.currentAction.lastAttempt}` : "";
+      const nextIn = data.currentAction.nextAttemptIn != null ? ` (next in ${data.currentAction.nextAttemptIn}s)` : "";
+      actionContainer.textContent =
+        `${data.currentAction.label} (${data.currentAction.elapsedSeconds}s)${attempt}${nextIn} - gathered: ${gathered}`;
+    } else {
+      actionContainer.textContent = "Idle";
+      actionContainer.className = "action-line";
+    }
+
+    // Combat panel only exists while a fight is live (payload.combat is null
+    // otherwise), matching how the action line collapses to "Idle".
+    const combatSection = document.getElementById("combat-section");
+    const combat = data.combat;
+    combatSection.hidden = !combat;
+    if (combat) {
+      const enemy = combat.enemy;
+      document.getElementById("combat-enemy").textContent = enemy
+        ? `${enemy.name} - ${enemy.hp}/${enemy.hpMax} HP`
+        : "Nothing left standing";
+      document.getElementById("combat-boss").hidden = !combat.boss;
+      document.getElementById("combat-fill").style.width =
+        (enemy && enemy.hpMax > 0 ? (enemy.hp / enemy.hpMax) * 100 : 0) + "%";
+      const parts = [`Round ${combat.round}`, `${combat.defeatedThisEncounter} defeated`];
+      if (combat.remaining > 1) parts.push(`${combat.remaining - 1} still waiting`);
+      if (combat.outcome) parts.push(combat.outcome);
+      document.getElementById("combat-meta").textContent = parts.join(" | ");
+
+      const logList = document.getElementById("combat-log");
+      logList.innerHTML = "";
+      for (const line of combat.log) logList.appendChild(el("li", "", line));
+    }
+
+    const killsSection = document.getElementById("kills-section");
+    killsSection.hidden = !data.kills || data.kills.length === 0;
+    if (data.kills && data.kills.length) {
+      const killsList = document.getElementById("kills-list");
+      killsList.innerHTML = "";
+      for (const kill of data.kills) killsList.appendChild(el("li", "", `${kill.name} x${kill.quantity}`));
+    }
+
+    const skillsGrid = document.getElementById("skills-grid");
+    skillsGrid.innerHTML = "";
+    for (const skill of data.skills) {
+      const row = el("div", "skill-row");
+      const label = el("div", "label");
+      label.appendChild(el("span", "name", skill.name));
+      label.appendChild(el("span", "lvl", `Lv.${skill.level}`));
+      row.appendChild(label);
+      const track = el("div", "bar-track");
+      const fill = el("div", "bar-fill skill");
+      fill.style.width = skill.progress * 100 + "%";
+      track.appendChild(fill);
+      row.appendChild(track);
+      skillsGrid.appendChild(row);
+    }
+
+    const equipGrid = document.getElementById("equip-grid");
+    equipGrid.innerHTML = "";
+    const slotLabels = { weapon: "Weapon", head: "Head", torso: "Torso", legs: "Legs", boots: "Boots", hands: "Hands", shield: "Shield" };
+    for (const [slot, label] of Object.entries(slotLabels)) {
+      const row = el("div", "equip-row");
+      row.appendChild(el("span", "slot", label));
+      const itemName = data.equipment[slot];
+      row.appendChild(el("span", "item" + (itemName ? "" : " empty"), itemName || "empty"));
+      equipGrid.appendChild(row);
+    }
+
+    renderBackpack(data);
+
+    renderToolbelt(data);
+    renderQuests(data);
+    renderAchievements(data);
+
+    document.getElementById("updated").textContent = "updated " + new Date(data.generatedAt).toLocaleTimeString();
+  }
+
+  function setStatus(text, cls) {
+    const node = document.getElementById("status");
+    node.textContent = text;
+    node.className = cls;
+  }
+
+  // shared:render end
+
+  // --- Import ---------------------------------------------------------------
+  // This page ships empty and never talks to a server - no fetch, no poll. The
+  // whole card comes from JSON handed over by the player, which is what lets it
+  // sit on a static host with no game running anywhere near it.
+
+  const importPanel = document.getElementById("import-panel");
+  const pcBody = document.getElementById("pc-body");
+  const resetBtn = document.getElementById("reset-btn");
+  const input = document.getElementById("import-input");
+  const errorLine = document.getElementById("import-error");
+
+  function showError(message) {
+    errorLine.textContent = message;
+    errorLine.hidden = false;
+  }
+
+  function clearError() {
+    errorLine.textContent = ""; // not just hidden - a stale message must not come back with the panel
+    errorLine.hidden = true;
+  }
+
+  function looksLikePlayercard(data) {
+    return Boolean(data) && typeof data === "object" && typeof data.name === "string" && Array.isArray(data.skills);
+  }
+
+  function importPayload(text) {
+    clearError();
+
+    if (!String(text).trim()) return showError("Nothing to import - paste a playercard export first.");
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (err) {
+      return showError(`That isn't valid JSON: ${err.message}`);
+    }
+
+    if (!looksLikePlayercard(data)) {
+      return showError("Valid JSON, but not an apocylta playercard export - it needs a name and a skills list.");
+    }
+
+    // render() is shared with the live page, where the payload always comes
+    // from the server and is always well formed. Here it is whatever was pasted
+    // in, so a missing field throws part-way through - hence the catch, and
+    // hence revealing #pc-body only once it returned.
+    try {
+      render(data);
+    } catch (err) {
+      return showError(`Couldn't render that card: ${err.message}`);
+    }
+
+    importPanel.hidden = true;
+    pcBody.hidden = false;
+    resetBtn.hidden = false;
+    setStatus("imported card", "stale");
+    // render() stamps this as a bare time, which reads as "just now" on a card
+    // that could be weeks old. The full date is the honest version here.
+    document.getElementById("updated").textContent = data.generatedAt
+      ? `exported ${new Date(data.generatedAt).toLocaleString()}`
+      : "";
+  }
+
+  document.getElementById("import-btn").addEventListener("click", () => importPayload(input.value));
+
+  document.getElementById("import-file").addEventListener("change", async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    input.value = await file.text();
+    e.target.value = ""; // so picking the same file twice still fires change
+    importPayload(input.value);
+  });
+
+  resetBtn.addEventListener("click", () => {
+    input.value = "";
+    clearError();
+    pcBody.hidden = true;
+    resetBtn.hidden = true;
+    importPanel.hidden = false;
+    showTab("playercard"); // a second import starts on the first tab, not the last one viewed
+  });
+</script>
