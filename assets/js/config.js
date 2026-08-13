@@ -5,7 +5,7 @@ window.SITE_CONFIG = {
   repos: [
     { owner: "rvzm", repo: "zboe2", label: "zboe2" },
     { owner: "rvzm",    repo: "rvzm.me" },
-    { owner: "twbs", repo: "bootstrap" }
+    { owner: "rvzm", repo: "apocylta" }
   ],
 
   // Navbar structure. Plain items are { page, src }; a dropdown is
