@@ -1,0 +1,163 @@
+<p class="page-eyebrow">Projects / Markdown Viewer</p>
+<h1 class="page-title">Markdown Viewer</h1>
+<p class="page-lead">Paste, upload, or drop a .md file to see it rendered instantly. Runs entirely
+in the browser — nothing is uploaded anywhere.</p>
+
+<div class="mdview">
+  <div class="mdview-toolbar">
+    <label class="btn btn-sm btn-outline-secondary" for="mdview-file">Upload .md</label>
+    <input type="file" id="mdview-file" accept=".md,.markdown,.txt" hidden>
+    <button class="btn btn-sm btn-outline-secondary" id="mdview-clear" type="button">Clear</button>
+    <button class="btn btn-sm btn-primary ms-auto" id="mdview-copy" type="button">Copy HTML</button>
+  </div>
+
+  <div class="mdview-panes">
+    <div class="mdview-pane">
+      <div class="mdview-pane-label">Source</div>
+      <textarea id="mdview-source" spellcheck="false"
+        placeholder="Paste Markdown here, or drop a .md file onto this pane..."></textarea>
+    </div>
+    <div class="mdview-pane">
+      <div class="mdview-pane-label">Preview</div>
+      <div id="mdview-preview" class="mdview-preview mdview-empty">Rendered output will appear here.</div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .mdview { margin-top: 1.75rem; max-width: none; }
+  .mdview-toolbar { display: flex; align-items: center; gap: .5rem; margin-bottom: .85rem; }
+  .mdview-panes {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
+    border: 1px solid var(--rule); border-radius: .65rem; overflow: hidden;
+  }
+  @media (max-width: 900px) { .mdview-panes { grid-template-columns: 1fr; } }
+
+  .mdview-pane { display: flex; flex-direction: column; min-width: 0; }
+  .mdview-pane + .mdview-pane { border-left: 1px solid var(--rule); }
+  @media (max-width: 900px) {
+    .mdview-pane + .mdview-pane { border-left: 0; border-top: 1px solid var(--rule); }
+  }
+
+  .mdview-pane-label {
+    font-family: var(--font-mono); font-size: .68rem; text-transform: uppercase;
+    letter-spacing: .1em; color: var(--bs-secondary-color);
+    padding: .65rem .9rem; border-bottom: 1px solid var(--rule);
+  }
+
+  #mdview-source {
+    flex: 1; min-height: 420px; resize: vertical; border: 0;
+    background: var(--bs-body-bg); color: var(--bs-body-color);
+    font-family: var(--font-mono); font-size: .87rem; line-height: 1.6;
+    padding: 1rem 1.1rem;
+  }
+  #mdview-source:focus { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+  .mdview-preview {
+    flex: 1; min-height: 420px; max-height: 70vh; overflow-y: auto;
+    padding: 1.25rem 1.4rem; max-width: none;
+  }
+  .mdview-preview.mdview-empty {
+    color: var(--bs-secondary-color); font-family: var(--font-mono); font-size: .82rem;
+    display: flex; align-items: center; justify-content: center; text-align: center;
+  }
+
+  .mdview-preview h1, .mdview-preview h2, .mdview-preview h3, .mdview-preview h4 {
+    font-family: var(--font-display); margin-top: 1.4em; margin-bottom: .5em; max-width: none;
+  }
+  .mdview-preview h1 { font-size: 1.5em; border-bottom: 1px solid var(--rule); padding-bottom: .3em; }
+  .mdview-preview h2 { font-size: 1.25em; }
+  .mdview-preview p, .mdview-preview li { max-width: none; }
+  .mdview-preview code {
+    font-family: var(--font-mono); font-size: .85em;
+    background: var(--accent-soft); padding: .15em .4em; border-radius: 4px;
+  }
+  .mdview-preview pre {
+    background: var(--bs-tertiary-bg, var(--accent-soft)); border: 1px solid var(--rule);
+    border-radius: .5rem; padding: .9rem 1rem; overflow-x: auto;
+  }
+  .mdview-preview pre code { background: none; padding: 0; }
+  .mdview-preview blockquote {
+    margin: 1em 0; padding: .2em 1em; border-left: 3px solid var(--accent);
+    background: var(--accent-soft); border-radius: 0 .4rem .4rem 0; color: var(--bs-secondary-color);
+  }
+  .mdview-preview table { border-collapse: collapse; width: 100%; font-size: .85em; margin: 1em 0; }
+  .mdview-preview th, .mdview-preview td { border: 1px solid var(--rule); padding: .4rem .6rem; text-align: left; }
+  .mdview-preview th { background: var(--accent-soft); }
+  .mdview-preview img { max-width: 100%; border-radius: .4rem; }
+  .mdview-preview hr { border: none; border-top: 1px solid var(--rule); margin: 2em 0; }
+
+  .mdview-preview .hljs-keyword, .mdview-preview .hljs-selector-tag, .mdview-preview .hljs-literal { color: var(--accent); }
+  .mdview-preview .hljs-string, .mdview-preview .hljs-attr { color: #9fd28a; }
+  .mdview-preview .hljs-comment { color: var(--bs-secondary-color); font-style: italic; }
+  .mdview-preview .hljs-number, .mdview-preview .hljs-title { color: #d6a15c; }
+
+  .mdview-panes.mdview-drag .mdview-pane:first-child {
+    outline: 2px dashed var(--accent); outline-offset: -6px;
+  }
+</style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.5/purify.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+<script>
+(() => {
+  const source = document.getElementById('mdview-source');
+  const preview = document.getElementById('mdview-preview');
+  const fileInput = document.getElementById('mdview-file');
+  const clearBtn = document.getElementById('mdview-clear');
+  const copyBtn = document.getElementById('mdview-copy');
+  const panes = document.querySelector('.mdview-panes');
+
+  marked.setOptions({
+    breaks: true,
+    gfm: true,
+    highlight: (code, lang) => {
+      if (lang && hljs.getLanguage(lang)) return hljs.highlight(code, { language: lang }).value;
+      return hljs.highlightAuto(code).value;
+    }
+  });
+
+  function render() {
+    const text = source.value;
+    if (!text.trim()) {
+      preview.classList.add('mdview-empty');
+      preview.textContent = 'Rendered output will appear here.';
+      return;
+    }
+    preview.classList.remove('mdview-empty');
+    preview.innerHTML = DOMPurify.sanitize(marked.parse(text));
+    preview.querySelectorAll('pre code').forEach((b) => {
+      if (!b.classList.contains('hljs')) hljs.highlightElement(b);
+    });
+  }
+
+  let t;
+  source.addEventListener('input', () => { clearTimeout(t); t = setTimeout(render, 120); });
+
+  function loadFile(file) {
+    const reader = new FileReader();
+    reader.onload = (e) => { source.value = e.target.result; render(); };
+    reader.readAsText(file);
+  }
+
+  fileInput.addEventListener('change', (e) => { if (e.target.files.length) loadFile(e.target.files[0]); });
+  clearBtn.addEventListener('click', () => { source.value = ''; render(); source.focus(); });
+
+  copyBtn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(preview.innerHTML);
+      const orig = copyBtn.textContent;
+      copyBtn.textContent = 'Copied';
+      setTimeout(() => { copyBtn.textContent = orig; }, 1200);
+    } catch { alert('Could not copy to clipboard.'); }
+  });
+
+  ['dragenter', 'dragover'].forEach(evt =>
+    panes.addEventListener(evt, (e) => { e.preventDefault(); panes.classList.add('mdview-drag'); }));
+  ['dragleave', 'drop'].forEach(evt =>
+    panes.addEventListener(evt, (e) => { e.preventDefault(); panes.classList.remove('mdview-drag'); }));
+  panes.addEventListener('drop', (e) => { if (e.dataTransfer.files.length) loadFile(e.dataTransfer.files[0]); });
+})();
+</script>

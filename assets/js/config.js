@@ -13,6 +13,7 @@ window.SITE_CONFIG = {
   // "src" is relative to pagesDir; the route (and href) is src minus ".html".
   nav: [
     { page: "Home", src: "home.html" },
+    { page: "Markdown Viewer", src: "mdview.html" },
     { page: "About", src: "about.html" },
     { page: "Videos", src: "video/index.html" },
     { dropdown: "Projects", links: [
