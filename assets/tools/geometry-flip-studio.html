@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Geometry Flip Studio</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1020;--panel:#151f34;--line:#30415e;--text:#e7f0ff;--muted:#9fb0cb;--accent:#70e2be}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px system-ui,Segoe UI,sans-serif}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:16px 22px;background:#121c30;border-bottom:1px solid var(--line)}
+h1{margin:0;font-size:23px}header small{color:var(--muted)}button,.file{background:#263a5a;border:1px solid #456187;border-radius:8px;color:var(--text);padding:8px 11px;cursor:pointer;font-weight:600}
+button:hover,.file:hover{background:#344d73}button.active{background:#126e63;border-color:#67d8bd}.primary{background:#176c5f}.danger{color:#ffc6ce}
+input[type=file]{display:none}input,select,textarea{background:#0a1222;border:1px solid #3a5175;border-radius:7px;color:var(--text);padding:7px}
+input[type=number]{width:72px}input[type=text]{width:180px}textarea{width:100%;min-height:220px;resize:vertical;font:12px/1.55 ui-monospace,Consolas,monospace}
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr) 320px;gap:12px;padding:12px;align-items:start}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.embeddedActions{display:none}body.embedded .embeddedActions{display:flex}.panel h2{font-size:13px;letter-spacing:.07em;text-transform:uppercase;margin:0;padding:12px;border-bottom:1px solid var(--line);color:#c0d1ea}
+.section{padding:12px}.stack{display:grid;gap:9px}.tools{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.tool{display:flex;align-items:center;gap:8px;text-align:left;font-size:12px;padding:9px}
+.swatch{width:16px;height:16px;display:inline-block;border-radius:3px;flex:none}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.row label{color:var(--muted);font-size:12px}
+.hint{font-size:12px;line-height:1.55;color:var(--muted)}.toolbar{padding:10px;display:flex;align-items:center;gap:7px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+.viewport{height:min(68vh,690px);min-height:400px;overflow:auto;background:#070e1a;cursor:crosshair;position:relative;touch-action:pan-x pan-y}
+canvas{display:block;image-rendering:pixelated}.foot{padding:10px 12px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.note{white-space:pre-wrap;font-size:12px;color:#b9c8e3;line-height:1.5}
+#notice{padding:10px;background:#0a1426;border:1px solid #2f4767;border-radius:7px;white-space:pre-wrap;font-size:12px}
+kbd{font:11px ui-monospace,monospace;background:#283954;border-radius:3px;padding:2px 4px}
+@media(max-width:1180px){.layout{grid-template-columns:240px minmax(0,1fr)}.sourcePanel{grid-column:1/-1}}
+@media(max-width:680px){.layout{grid-template-columns:1fr}.sourcePanel{grid-column:auto}.viewport{height:55vh}header{padding:12px}}
+body.embedded header{display:none}body.embedded .layout{padding:8px;gap:9px}body.embedded .viewport{height:620px}body.embedded .layout{grid-template-columns:200px minmax(0,1fr)}body.embedded .sourcePanel{grid-column:1/-1}@media(max-width:700px){body.embedded .layout{grid-template-columns:1fr}body.embedded .sourcePanel{grid-column:auto}}
+</style></head><body>
+<header><div><h1>◆ Geometry Flip Studio</h1><small>Visual .gflvl editor · offline · no dependencies</small></div>
+<div class="row"><label class="file" for="upload">Open .gflvl</label><input id="upload" type="file" accept=".gflvl,.txt"><button id="demo">Demo level</button><button id="new">New</button><button id="export" class="primary">↓ Export .gflvl</button></div></header>
+<main class="layout">
+<aside class="panel"><h2>Drawing tools</h2><div class="section row embeddedActions"><label class="file" for="uploadEmbedded">Open file</label><input id="uploadEmbedded" type="file" accept=".gflvl,.txt"><button id="exportEmbedded" class="primary">Export</button><button id="demoEmbedded">Demo</button><button id="newEmbedded">New</button></div><div class="section stack">
+<div class="tools" id="tools"></div>
+<div class="row"><label for="length">Platform / wall length</label><input id="length" type="number" min="1" max="100" value="5"></div>
+<div class="hint">Click a cell to place an object. Drag to paint blocks and spikes. Platform and wall tools place a run of blocks with the specified length. Right-click to erase. Use Select to inspect or remove objects.</div>
+<hr style="width:100%;border:0;border-top:1px solid var(--line)">
+<div class="row"><button id="undo">↶ Undo</button><button id="redo">↷ Redo</button><button id="eraseAll" class="danger">Clear level</button></div>
+<div class="hint"><kbd>Ctrl+Z</kbd> undo · <kbd>Ctrl+Y</kbd> redo · <kbd>Delete</kbd> delete selected · <kbd>Esc</kbd> deselect</div>
+</div><h2>Selected object</h2><div class="section stack">
+<div id="selectionText" class="hint">Nothing selected.</div>
+<div class="row"><label>X <input id="sx" type="number" step="1"></label><label>Y <input id="sy" type="number" step="1"></label></div>
+<div class="row"><label>Length <input id="slen" type="number" min="1" max="100"></label><button id="applySelection">Apply</button><button id="deleteSelection" class="danger">Delete</button></div>
+</div></aside>
+<section class="panel"><div class="toolbar">
+<label>Zoom <input id="zoom" type="range" min="12" max="40" step="2" value="24"></label><span id="zoomLabel">24px</span>
+<label><input id="grid" type="checkbox" checked> Grid</label>
+<label><input id="coords" type="checkbox" checked> Coordinates</label>
+<button id="resetView">Reset view</button>
+</div>
+<div class="viewport" id="viewport"><canvas id="canvas"></canvas></div>
+<div class="foot"><span id="stats">0 objects</span><span id="cursor">X: — · Y: —</span></div>
+</section>
+<aside class="panel sourcePanel"><h2>Source / import</h2><div class="section stack">
+<label class="hint" for="filename">Export filename</label><input id="filename" type="text" value="my_geometry_level.gflvl">
+<div class="row"><button id="syncSource">↻ Update text</button><button id="applySource" class="primary">Apply text to canvas</button></div>
+<textarea id="source" spellcheck="false" aria-label="GFLVL source"></textarea>
+<div id="notice">Ready.</div>
+<div class="note"><strong>Format:</strong>
+1,5,0 = block at (5,0)
+2,8,0 = upward spike
+b,10,0,5 = platform, length 5
+w,30,0,8 = wall entry, length 8
+
+X grows right. Y grows upward. The canvas is a layout preview, not a Flipper physics simulator.
+
+<strong>Compatibility note:</strong> In the implementation referenced by the earlier viewer, <code>w</code> expands horizontally despite its wall name. This editor shows that horizontal footprint. The letter <code>b</code> is overloaded in some format descriptions; a 4-field b entry is treated as a platform, a 3-field b entry as gravity-down. Verify special portal behavior against your installed Geometry Flip version.</div>
+</div></aside>
+</main>
+<script>
+'use strict';
+if(new URLSearchParams(location.search).has('embed'))document.body.classList.add('embedded');
+const $=id=>document.getElementById(id);
+const palette=[
+['select','↖','Select','#e4eaf7'],['erase','⌫','Eraser','#ff7e8a'],
+['1','■','Block','#8fa4c7'],['2','▲','Spike up','#ff647c'],['3','▼','Spike down','#ff9a58'],['4','◀','Spike left','#ffb95b'],['5','▶','Spike right','#ffb95b'],
+['6','S','Ship portal','#4bc9f0'],['7','C','Cube portal','#a98bff'],['8','B','Ball portal','#51d6a5'],['9','U','UFO portal','#e58aff'],
+['a','↑','Gravity up','#e9df68'],['gravityDown','↓','Gravity down','#e9df68'],
+['b','━','Platform','#6885a8'],['w','┃','Wall entry','#8195b3']
+];
+const demo=`# Geometry Flip demo level
+1,5,0
+1,6,0
+2,8,0
+b,10,0,15
+2,25,0
+w,30,0,8
+2,30,8
+b,35,0,5
+6,37,0
+b,40,0,3
+b,45,1,3
+b,50,0,2
+8,51,1
+b,55,2,2
+7,60,0
+b,65,0,3
+3,66,1
+2,70,0
+6,75,0
+b,80,0,3
+9,81,1
+b,85,2,2
+7,90,0
+b,95,0,5
+2,100,0`;
+let objects=[],tool='1',selected=null,undoStack=[],redoStack=[],dragging=false,dragLast='',dirtyText=false;
+const canvas=$('canvas'),ctx=canvas.getContext('2d'),view=$('viewport');
+const bounds={minX:-4,maxX:84,minY:-6,maxY:14};
+const colors=Object.fromEntries(palette.map(t=>[t[0],t[3]]));
+const symbols=Object.fromEntries(palette.map(t=>[t[0],t[1]]));
+function makeTools(){for(const [id,symbol,name,color] of palette){const b=document.createElement('button');b.className='tool';b.dataset.tool=id;b.title=name;b.innerHTML=`<span class="swatch" style="background:${color};display:grid;place-items:center;color:#07111d;font-weight:900">${symbol}</span><span>${name}</span>`;b.onclick=()=>setTool(id);$('tools').append(b)}setTool('1')}
+function setTool(t){tool=t;document.querySelectorAll('[data-tool]').forEach(b=>b.classList.toggle('active',b.dataset.tool===t));view.style.cursor=t==='select'?'pointer':t==='erase'?'not-allowed':'crosshair'}
+function clone(o){return JSON.parse(JSON.stringify(o))}
+function snapshot(){undoStack.push(clone(objects));if(undoStack.length>80)undoStack.shift();redoStack=[]}
+function undo(){if(!undoStack.length)return;redoStack.push(clone(objects));objects=undoStack.pop();selected=null;refresh()}
+function redo(){if(!redoStack.length)return;undoStack.push(clone(objects));objects=redoStack.pop();selected=null;refresh()}
+function parse(raw){
+const out=[],errors=[];
+raw.split(/\r?\n/).forEach((s,i)=>{
+const line=s.split('#')[0].trim();if(!line)return;
+const p=line.split(',').map(v=>v.trim()),type=p[0].toLowerCase();
+if(!/^(0|[1-9]|a|b|w)$/.test(type)||p.length<3){errors.push(`Line ${i+1}: invalid type or missing coordinates`);return}
+const x=Number(p[1]),y=Number(p[2]),len=p.length>3?Number(p[3]):1;
+if(!Number.isInteger(x)||!Number.isInteger(y)||!Number.isInteger(len)||len<1||len>100){errors.push(`Line ${i+1}: invalid coordinate/length`);return}
+if(type==='0')return;
+if((type==='w'||type==='b'&&p.length>3)&&p.length!==4){errors.push(`Line ${i+1}: expected 4 fields`);return}
+if(type!=='w'&&type!=='b'&&p.length!==3){errors.push(`Line ${i+1}: expected 3 fields`);return}
+out.push({type:type==='b'&&p.length===3?'gravityDown':type,x,y,len:type==='b'||type==='w'?len:1})
+});return {out,errors}
+}
+function serialize(){return objects.map(o=>`${o.type==='gravityDown'?'b':o.type},${o.x},${o.y}${o.type==='b'||o.type==='w'?','+o.len:''}`).join('\n')+(objects.length?'\n':'')}
+function refresh(){fitBounds();render();syncText();updateSelection()}
+function syncText(){if(!dirtyText){$('source').value=serialize()}$('stats').textContent=`${objects.length} entries · ${objects.reduce((n,o)=>n+(o.type==='b'||o.type==='w'?o.len:1),0)} occupied cells`}
+function fitBounds(){const oldWidth=canvas.width,oldHeight=canvas.height,c=Number($('zoom').value);
+let minX=Math.min(-4,...objects.map(o=>o.x-3)),maxX=Math.max(84,...objects.map(o=>o.x+(o.type==='b'||o.type==='w'?o.len:1)+4));
+let minY=Math.min(-6,...objects.map(o=>o.y-4)),maxY=Math.max(14,...objects.map(o=>o.y+5));
+if(maxX-minX>1500||maxY-minY>250){$('notice').textContent='Large level: preview limited to 1500 columns and 250 rows.';maxX=Math.min(maxX,minX+1500);maxY=Math.min(maxY,minY+250)}
+Object.assign(bounds,{minX,maxX,minY,maxY});canvas.width=(maxX-minX)*c;canvas.height=(maxY-minY)*c;
+$('zoomLabel').textContent=c+'px';
+}
+function pos(x,y){const c=Number($('zoom').value);return [(x-bounds.minX)*c,(bounds.maxY-y-1)*c]}
+function drawObject(o){
+const c=Number($('zoom').value),[x,y]=pos(o.x,o.y);
+if(o.type==='b'||o.type==='w'){
+ctx.fillStyle=colors[o.type];ctx.fillRect(x+1,y+1,o.len*c-2,c-2);ctx.strokeStyle='#cbd9ed';ctx.strokeRect(x+.5,y+.5,o.len*c-1,c-1);
+ctx.strokeStyle='#304764';for(let j=1;j<o.len;j++){ctx.beginPath();ctx.moveTo(x+j*c,y);ctx.lineTo(x+j*c,y+c);ctx.stroke()}
+if(o.type==='w'){ctx.fillStyle='#eef3ff';ctx.font=`bold ${Math.max(10,c*.5)}px sans-serif`;ctx.fillText('w',x+3,y+c*.72)}
+}else if(o.type==='1'){ctx.fillStyle=colors[1];ctx.fillRect(x+1,y+1,c-2,c-2);ctx.strokeStyle='#e5edff';ctx.strokeRect(x+.5,y+.5,c-1,c-1)}
+else if(['2','3','4','5'].includes(o.type)){
+ctx.fillStyle=colors[o.type];ctx.beginPath();
+if(o.type==='2'){ctx.moveTo(x,y+c);ctx.lineTo(x+c/2,y);ctx.lineTo(x+c,y+c)}
+if(o.type==='3'){ctx.moveTo(x,y);ctx.lineTo(x+c/2,y+c);ctx.lineTo(x+c,y)}
+if(o.type==='4'){ctx.moveTo(x+c,y);ctx.lineTo(x,y+c/2);ctx.lineTo(x+c,y+c)}
+if(o.type==='5'){ctx.moveTo(x,y);ctx.lineTo(x+c,y+c/2);ctx.lineTo(x,y+c)}
+ctx.closePath();ctx.fill();ctx.strokeStyle='#ffe1d9';ctx.stroke()
+}else{
+ctx.fillStyle=colors[o.type]||'#e5e5e5';ctx.beginPath();ctx.roundRect(x+2,y+2,c-4,c-4,Math.max(3,c*.18));ctx.fill();
+ctx.fillStyle='#0b1426';ctx.font=`bold ${Math.max(10,c*.6)}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(symbols[o.type]||'?',x+c/2,y+c/2);ctx.textAlign='left';ctx.textBaseline='alphabetic'
+}
+}
+function render(){
+const c=Number($('zoom').value),w=canvas.width,h=canvas.height;
+ctx.fillStyle='#091222';ctx.fillRect(0,0,w,h);
+if($('grid').checked){ctx.strokeStyle='#1c2c45';ctx.lineWidth=1;ctx.beginPath();
+for(let x=0;x<=w;x+=c){ctx.moveTo(x+.5,0);ctx.lineTo(x+.5,h)}
+for(let y=0;y<=h;y+=c){ctx.moveTo(0,y+.5);ctx.lineTo(w,y+.5)}ctx.stroke()}
+const [,gy]=pos(0,0);ctx.strokeStyle='#4d6988';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,gy+c+.5);ctx.lineTo(w,gy+c+.5);ctx.stroke();
+if($('coords').checked){ctx.fillStyle='#7892b2';ctx.font='11px monospace';for(let x=Math.ceil(bounds.minX/5)*5;x<bounds.maxX;x+=5){let [px]=pos(x,0);ctx.fillText(x,px+3,15)}
+for(let y=Math.ceil(bounds.minY/5)*5;y<bounds.maxY;y+=5){let [,py]=pos(0,y);ctx.fillText(y,4,py+12)}}
+objects.forEach(drawObject);
+if(selected!==null&&objects[selected]){const o=objects[selected],[x,y]=pos(o.x,o.y);ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.setLineDash([5,3]);ctx.strokeRect(x+1,y+1,(o.type==='b'||o.type==='w'?o.len:1)*c-2,c-2);ctx.setLineDash([])}
+}
+function cellAt(e){const r=canvas.getBoundingClientRect(),c=Number($('zoom').value);return {x:Math.floor((e.clientX-r.left)/c)+bounds.minX,y:bounds.maxY-Math.floor((e.clientY-r.top)/c)-1}}
+function hits(o,x,y){return y===o.y&&x>=o.x&&x<o.x+(o.type==='b'||o.type==='w'?o.len:1)}
+function selectAt(x,y){selected=objects.findLastIndex(o=>hits(o,x,y));updateSelection();render()}
+function updateSelection(){const o=selected===null?null:objects[selected];$('selectionText').textContent=o?`${palette.find(p=>p[0]===o.type)?.[2]||o.type} · entry #${selected+1}`:'Nothing selected.';$('sx').value=o?.x??'';$('sy').value=o?.y??'';$('slen').value=o?.len??'';for(const id of ['sx','sy','slen','applySelection','deleteSelection'])$(id).disabled=!o}
+function actionAt(x,y,mode){
+if(mode==='select'){selectAt(x,y);return}
+const old=objects.length;
+if(mode==='erase'){objects=objects.filter(o=>!hits(o,x,y))}
+else{
+const len=(mode==='b'||mode==='w')?Math.max(1,Math.min(100,parseInt($('length').value)||1)):1;
+objects=objects.filter(o=>!hits(o,x,y));objects.push({type:mode,x,y,len})
+}
+if(objects.length!==old||mode!=='erase'){selected=null;dirtyText=false;refresh()}
+}
+canvas.addEventListener('pointerdown',e=>{
+if(e.button!==0&&e.button!==2)return;e.preventDefault();
+const {x,y}=cellAt(e),mode=e.button===2?'erase':tool;
+if(mode!=='select')snapshot();
+dragging=true;dragLast=`${x},${y}`;actionAt(x,y,mode);canvas.setPointerCapture(e.pointerId)
+});
+canvas.addEventListener('pointermove',e=>{
+const {x,y}=cellAt(e);$('cursor').textContent=`X: ${x} · Y: ${y}`;
+if(!dragging||!(e.buttons&1)||tool==='select'||tool==='b'||tool==='w')return;
+const key=`${x},${y}`;if(key===dragLast)return;dragLast=key;actionAt(x,y,tool)
+});
+canvas.addEventListener('pointerup',()=>dragging=false);canvas.addEventListener('pointercancel',()=>dragging=false);canvas.addEventListener('contextmenu',e=>e.preventDefault());
+$('applySelection').onclick=()=>{const o=objects[selected];if(!o)return;const x=Number($('sx').value),y=Number($('sy').value),len=Number($('slen').value);if(!Number.isInteger(x)||!Number.isInteger(y)||!Number.isInteger(len)||len<1||len>100){notice('Invalid integer coordinate or length.');return}snapshot();o.x=x;o.y=y;o.len=(o.type==='b'||o.type==='w')?len:1;dirtyText=false;refresh()};
+$('deleteSelection').onclick=()=>{if(selected===null)return;snapshot();objects.splice(selected,1);selected=null;dirtyText=false;refresh()};
+$('undo').onclick=undo;$('redo').onclick=redo;
+$('grid').onchange=render;$('coords').onchange=render;
+$('zoom').oninput=()=>{const ratio=view.scrollLeft/Math.max(1,canvas.width),vertical=view.scrollTop/Math.max(1,canvas.height);fitBounds();render();view.scrollLeft=ratio*canvas.width;view.scrollTop=vertical*canvas.height};
+$('resetView').onclick=()=>{view.scrollLeft=0;view.scrollTop=Math.max(0,canvas.height*.32)};
+function notice(s){$('notice').textContent=s}
+$('source').addEventListener('input',()=>{dirtyText=true;notice('Source changed. Click “Apply text to canvas” to load it.')});
+$('applySource').onclick=()=>{const {out,errors}=parse($('source').value);if(errors.length){notice('Import stopped:\n'+errors.slice(0,12).join('\n'));return}snapshot();objects=out;selected=null;dirtyText=false;refresh();notice(`Imported ${out.length} entries.`)};
+$('syncSource').onclick=()=>{dirtyText=false;syncText();notice('Text updated from canvas. Unapplied text edits were replaced.')};
+$('upload').onchange=async e=>{const f=e.target.files[0];if(!f)return;const raw=await f.text(),{out,errors}=parse(raw);if(errors.length){$('source').value=raw;dirtyText=true;notice('File has parse errors:\n'+errors.slice(0,12).join('\n'));return}snapshot();objects=out;selected=null;dirtyText=false;refresh();$('filename').value=f.name;notice(`Loaded ${f.name}: ${out.length} entries.`);e.target.value=''};
+$('demo').onclick=()=>{snapshot();objects=parse(demo).out;selected=null;dirtyText=false;refresh();notice('Demo level loaded.')};
+$('new').onclick=()=>{if(objects.length&&!confirm('Start a new empty level?'))return;snapshot();objects=[];selected=null;dirtyText=false;refresh();notice('New empty level.')};
+$('eraseAll').onclick=()=>{if(!confirm('Clear every object? You can undo this.'))return;snapshot();objects=[];selected=null;dirtyText=false;refresh();notice('Level cleared.')};
+$('export').onclick=()=>{
+if(dirtyText){notice('You have unapplied text edits. Apply them or update the text before exporting.');return}
+const name=($('filename').value.trim()||'my_geometry_level.gflvl').replace(/[\\/:*?"<>|]/g,'_').replace(/\.gflvl$/i,'')+'.gflvl';
+const url=URL.createObjectURL(new Blob([serialize()],{type:'text/plain;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);notice(`Exported ${name}. Copy it to /ext/apps_data/geometry_flip/ on your Flipper SD card.`)
+};
+document.addEventListener('keydown',e=>{const edit=/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName||'');if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'&&!edit){e.preventDefault();undo()}else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='y'&&!edit){e.preventDefault();redo()}else if(e.key==='Delete'&&!edit){$('deleteSelection').click()}else if(e.key==='Escape'){selected=null;updateSelection();render()}});
+$('uploadEmbedded').onchange=e=>{const f=e.target.files[0];if(!f)return;const dt=new DataTransfer();dt.items.add(f);$('upload').files=dt.files;$('upload').dispatchEvent(new Event('change'))};$('exportEmbedded').onclick=()=>$('export').click();$('demoEmbedded').onclick=()=>$('demo').click();$('newEmbedded').onclick=()=>$('new').click();
+makeTools();objects=parse(demo).out;refresh();setTimeout(()=>$('resetView').click(),0);
+</script></body></html>
