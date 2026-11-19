@@ -14,7 +14,6 @@ window.SITE_CONFIG = {
   nav: [
     { page: "Home", src: "home.html" },
     { page: "About", src: "about.html" },
-    { page: "Videos", src: "video/index.html" },
     { dropdown: "Projects", links: [
         { page: "zboe2", src: "projects/zboe2.html" },
         { page: "apocylta", src: "projects/apocylta.html" },
@@ -22,6 +21,8 @@ window.SITE_CONFIG = {
         { divider: true },
         { page: "web", src: "projects/web.html" },
         { page: "web sources", src: "projects/web-sources.html" },
+        { divider: true },
+        { page: "upfitting", src: "projects/upfit/index.html" },
         { divider: true },
         { page: "All projects", src: "projects/index.html" }
     ]},
