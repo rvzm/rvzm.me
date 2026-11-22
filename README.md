@@ -11,7 +11,7 @@ activity for a configurable list of GitHub repos.
 ## Stack
 
 - [Bootstrap 5](https://getbootstrap.com/) + [Bootstrap Icons](https://icons.getbootstrap.com/) via CDN
-- Vanilla JS (`assets/js/app.js`) — hash router, GitHub sidebar, theme toggle
+- Vanilla JS ([`assets/js/app.js`](https://github.com/rvzm/rvzm.me/blob/main/assets/js/app.js)) — hash router, GitHub sidebar, theme toggle
 - Plain HTML page fragments under `pages/`, swapped into `#content` by the router
 - No package manager, no build step, no server-side code — nginx serves the directory as-is
 
