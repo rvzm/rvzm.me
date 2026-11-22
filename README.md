@@ -46,7 +46,7 @@ Everything content-related lives in `assets/js/config.js`:
 
    the route/hash is `src` minus `.html`.
 
-- **`pagesDir`** is the path the router checks for files, which the `nav` uses as `src`
+- **`pagesDir`** is the path the router uses for files, which the `nav` uses as `src`
 
 - **`repos`** — GitHub repos shown in the sidebar (`{ owner, repo, label? }`), each rendered as a
   card with recent commits, branches, and a 12-week activity sparkline.
