@@ -8,6 +8,14 @@ Source for [rvzm.me](https://rvzm.me) — a personal site built as a single HTML
 client-side hash router, no framework and no build step. A sidebar pulls live commit/branch
 activity for a configurable list of GitHub repos.
 
+## The Goal
+
+This repo acts as a source of truth for the rvzm.me website, and to give a framework for people to build their own sites with.
+
+It also serves as a bit of a jab at modern sites that have a billion pages/files doing a lot of background while being mostly confusing to use, so we serve a plain, easy-to-use site with easy-to-update page handling, while keeping it lightweight. 
+
+This repo will get large as the site content grows, but the actual "framework" for the site will remain lightweight.
+
 ## Stack
 
 - [Bootstrap 5](https://getbootstrap.com/) + [Bootstrap Icons](https://icons.getbootstrap.com/) via CDN
