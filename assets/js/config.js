@@ -27,8 +27,8 @@ window.SITE_CONFIG = {
         { page: "All projects", src: "projects/index.html" }
     ]},
     { dropdown: "Tools", links: [
-        { page: "Markdown Viewer", src: "mdview.html" },
-        { page: "Geometry Flip Studio", src: "geometry-flip.html" },
+        { page: "Markdown Viewer", src: "tools/mdview.html" },
+        { page: "Geometry Flip Studio", src: "tools/geometry-flip.html" },
     ]
     },
     { page: "Contact", src: "contact.html" }
