@@ -1,4 +1,8 @@
 # rvzm.me
+![version: 0.2](https://img.shields.io/badge/version-0.2-green)
+![bootstrap: 5.3.9](https://img.shields.io/badge/bootstrap-5.3.9-blue)
+![bootstrap-icons: 1.13.2](https://img.shields.io/badge/bootstrap--icons-1.13.2-blue)
+
 
 Source for [rvzm.me](https://rvzm.me) — a personal site built as a single HTML shell with a
 client-side hash router, no framework and no build step. A sidebar pulls live commit/branch
@@ -36,12 +40,19 @@ Then open `http://localhost:8000`.
 
 Everything content-related lives in `assets/js/config.js`:
 
-- **`nav`** — the navbar. Plain items are `{ page, src }`; a dropdown is
-  `{ dropdown, links: [...] }`, where `links` can also contain `{ divider: true }`. `src` is a path
-  under `pagesDir`; the route/hash is `src` minus `.html`.
+- **`nav`** — the navbar. Plain items are `{ page, src }`;
+
+   dropdowns are made using `{ dropdown, links: [...] }`, where `links` can also contain `{ divider: true }`.
+
+   the route/hash is `src` minus `.html`.
+
+- **`pagesDir`** is the path the router checks for files, which the `nav` uses as `src`
+
 - **`repos`** — GitHub repos shown in the sidebar (`{ owner, repo, label? }`), each rendered as a
   card with recent commits, branches, and a 12-week activity sparkline.
+
 - **`site_owner`** — repos owned by this account get a "report an issue" shortcut on their card.
+
 - **`token`** — optional read-only GitHub token to raise the API rate limit. It's visible to every
   visitor, so only set it on a non-public build.
 
