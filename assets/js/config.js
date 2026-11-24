@@ -13,7 +13,6 @@ window.SITE_CONFIG = {
   // "src" is relative to pagesDir; the route (and href) is src minus ".html".
   nav: [
     { page: "Home", src: "home.html" },
-    { page: "About", src: "about.html" },
     { dropdown: "Projects", links: [
         { page: "zboe2", src: "projects/zboe2.html" },
         { page: "apocylta", src: "projects/apocylta.html" },
@@ -29,8 +28,8 @@ window.SITE_CONFIG = {
     { dropdown: "Tools", links: [
         { page: "Markdown Viewer", src: "tools/mdview.html" },
         { page: "Geometry Flip Studio", src: "tools/geometry-flip.html" },
-    ]
-    },
+    ]},
+    { page: "About", src: "about.html" },
     { page: "Contact", src: "contact.html" }
   ],
 
